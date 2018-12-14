@@ -53,11 +53,21 @@ assertthat::assert_that(
   training_data %>% dplyr::group_by(sample) %>% n_groups() 
   == 40)
 
+# This is too many for us to work with when preparing data.
+# let's sample 3 per bath
+training_sample <- training_data %>%
+  dplyr::group_by(batch) %>%
+  dplyr::distinct(sample_desc) %>%
+  dplyr::sample_n(3) %>%
+  dplyr::ungroup()
+
 # brms inputs (hypothetically)
-brms_inputs <- list(formula = brms::bf(normalized_expression ~ 1 + is_mtcc + (1 | batch) + (1 | sample) + (1 + is_mtcc | gene)),
-                    data = training_data,
+brms_inputs <- list(formula = brms::bf(normalized_expression ~ 1 + is_mtcc + is_mtcc:gene + (1 | batch) + (1 | gene)),
+                    data = training_data %>% dplyr::semi_join(training_sample, by = c('sample_desc', 'batch')),
                     sparse = T,
                     priors = brms::set_prior(horseshoe(df = 3, par_ratio = 0.1), class = 'b'),
                     family = hurdle_gamma)
 brms_stan_code <- purrr::invoke(brms::make_stancode, brms_inputs)
 brms_stan_data <- purrr::invoke(brms::make_standata, brms_inputs)
+rstan::stan_rdump(names(brms_stan_data), file = 'test_rdump.Rds', envir = list2env(brms_stan_data))
+
