@@ -118,3 +118,9 @@ try(
   rstan::stan_rdump(names(brms_stan_data), file = 'test_rdump.Rds', envir = list2env(brms_stan_data))
   )
 ```
+
+## Session info 
+
+```{r}
+sessionInfo()
+```
